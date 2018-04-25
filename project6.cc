@@ -5,7 +5,6 @@
  */
 
 #include <cstdint>
-#include <cstdio>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -84,15 +83,18 @@ int main()
   file.read((char *) &header.magicNumber, sizeof(header.magicNumber));
   file.read((char *) &header.versionNumber, sizeof(header.versionNumber));
   file.read((char *) &header.numRecords, sizeof(header.numRecords));
-  if (header.numRecords > maxRecordStringLength) {
-      file.close();
-      cerr << "The number of records " << header.numRecords
-           << "is too long.\n";
-      return 1;
+  if (header.numRecords > 4) {
+    header.numRecords = 4;
   }
 
   /* Read string records */
-  //records = new BinaryFileRecord[header.numRecords];
+  records = new BinaryFileRecord[header.numRecords];
+  char dead_buf[maxRecordStringLength+1];
+  for (uint64_t x = 0; x < header.numRecords; ++x) {
+    file.read((char *) &(records[x].strLength), 1);
+    file.read(records[x].stringBuffer, records[x].strLength);
+    file.read(dead_buf, maxRecordStringLength - records[x].strLength);
+  }
 
   file.close();
 
@@ -133,13 +135,18 @@ int main()
   setCDKMatrixCell(myMatrix, 1, 1, dispStr1.c_str());
   setCDKMatrixCell(myMatrix, 1, 2, dispStr2.c_str());
   setCDKMatrixCell(myMatrix, 1, 3, dispStr3.c_str());
+  string s = "strlen: ";
+  for (uint64_t x = 0; x < header.numRecords; ++x) {
+    setCDKMatrixCell(myMatrix, x+2, 1, (s + to_string(records[x].strLength)).c_str());
+    setCDKMatrixCell(myMatrix, x+2, 2, records[x].stringBuffer);
+  }
   drawCDKMatrix(myMatrix, true);    /* required  */
 
   /* So we can see results, pause until a key is pressed. */
   unsigned char x;
   cin >> x;
 
-  //delete[] records;
+  delete[] records;
 
   // Cleanup screen
   endCDK();
