@@ -4,14 +4,19 @@
  * CS3377.501
  */
 
-#include <iostream>
 #include <cstdint>
+#include <cstdio>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+
 #include "cdk.h"
 
 
-#define MATRIX_WIDTH 4
-#define MATRIX_HEIGHT 3
-#define BOX_WIDTH 15
+#define MATRIX_WIDTH 3
+#define MATRIX_HEIGHT 5
+#define BOX_WIDTH 18
 #define MATRIX_NAME_STRING "Test Matrix"
 
 using namespace std;
@@ -38,6 +43,17 @@ public:
 };
 
 
+template<class T>
+std::string int_to_hex(T i)
+{
+    std::stringstream stream;
+    stream << "0x"
+           << std::setfill('0') << std::setw(sizeof(T)*2)
+           << std::hex << i;
+    return stream.str();
+}
+
+
 int main()
 {
 
@@ -57,6 +73,28 @@ int main()
   const char 		*columnTitles[] = {"C0", "C1", "C2", "C3", "C4", "C5"};
   int		boxWidths[] = {BOX_WIDTH, BOX_WIDTH, BOX_WIDTH, BOX_WIDTH, BOX_WIDTH, BOX_WIDTH};
   int		boxTypes[] = {vMIXED, vMIXED, vMIXED, vMIXED,  vMIXED,  vMIXED};
+
+  ifstream file;
+  BinaryFileHeader header;
+  BinaryFileRecord *records;
+
+  file.open("cs3377.bin", ios::in | ios::binary);
+
+  /* Read the header record */
+  file.read((char *) &header.magicNumber, sizeof(header.magicNumber));
+  file.read((char *) &header.versionNumber, sizeof(header.versionNumber));
+  file.read((char *) &header.numRecords, sizeof(header.numRecords));
+  if (header.numRecords > maxRecordStringLength) {
+      file.close();
+      cerr << "The number of records " << header.numRecords
+           << "is too long.\n";
+      return 1;
+  }
+
+  /* Read string records */
+  //records = new BinaryFileRecord[header.numRecords];
+
+  file.close();
 
   /*
    * Initialize the Cdk screen.
@@ -88,12 +126,20 @@ int main()
   /*
    * Dipslay a message
    */
-  setCDKMatrixCell(myMatrix, 2, 2, "Test Message");
+  string dispStr1 = "Magic: " + int_to_hex(header.magicNumber);
+  string dispStr2 = "Version: " + to_string(header.versionNumber);
+  string dispStr3 = "NumRecords: " + to_string(header.numRecords);
+  /* std::string dispStr2 = */ 
+  setCDKMatrixCell(myMatrix, 1, 1, dispStr1.c_str());
+  setCDKMatrixCell(myMatrix, 1, 2, dispStr2.c_str());
+  setCDKMatrixCell(myMatrix, 1, 3, dispStr3.c_str());
   drawCDKMatrix(myMatrix, true);    /* required  */
 
   /* So we can see results, pause until a key is pressed. */
   unsigned char x;
   cin >> x;
+
+  //delete[] records;
 
   // Cleanup screen
   endCDK();
